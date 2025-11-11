@@ -1,0 +1,37 @@
+# Yii2 basic template
+
+# Composer dependencies
+/vendor/
+
+# Environment & config
+/.env
+/config/db.php
+/config/params-local.php
+/config/web-local.php
+
+# Runtime data
+/runtime/
+web/assets/
+
+# Logs
+*.log
+
+# Cache / temp
+/cache/
+tmp/
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Node / frontend (if using)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+dist/
+
+# PHPUnit / tests
+.phpunit.result.cache
+coverage/
