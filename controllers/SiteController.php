@@ -69,13 +69,14 @@ class SiteController extends Controller
      *
      * @return Response|string
      */
-    public function actionLogin()
+ public function actionLogin()
     {
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
 
-        $model = new LoginForm();
+        $model = new \app\models\LoginForm();
+
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
             return $this->goBack();
         }
@@ -85,6 +86,7 @@ class SiteController extends Controller
             'model' => $model,
         ]);
     }
+
 
     /**
      * Logout action.
@@ -125,4 +127,23 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+    /**
+     * Signup action.
+     *
+     * @return Response|string
+     */
+    public function actionSignup()
+    {
+        $model = new \app\models\SignupForm();
+
+        if ($model->load(Yii::$app->request->post()) && $user = $model->signup()) {
+            Yii::$app->session->setFlash('success', 'Registration successful. You can now login.');
+            return $this->redirect(['site/login']);
+        }
+
+        return $this->render('signup', [
+            'model' => $model,
+        ]);
+    }
+
 }
