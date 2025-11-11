@@ -1,6 +1,6 @@
 # Multiplatform Playlist Tracker
 
-A web application to track, manage, and analyze playlists across multiple platforms, built with **Yii2** and **PostgreSQL**.
+A web application to track, and analyze playlists across multiple platforms, built with **Yii2** and **PostgreSQL**.
 
 ## Features
 
