@@ -1,53 +1,34 @@
 <?php
-
-/** @var yii\web\View $this */
-
-$this->title = 'My Yii Application';
+$this->title = 'Multi-Platform Playlist Tracker';
 ?>
+
 <div class="site-index">
-
     <div class="jumbotron text-center bg-transparent mt-5 mb-5">
-        <h1 class="display-4">Congratulations!</h1>
-
-        <p class="lead">You have successfully created your Yii-powered application.</p>
-
-        <p><a class="btn btn-lg btn-success" href="https://www.yiiframework.com">Get started with Yii</a></p>
+        <h1 class="display-4">Playlist Tracker</h1>
+        <p class="lead">Track playlists across platforms and monitor changes over time.</p>
+        <p><a class="btn btn-lg btn-success" href="/playlist/add">+ Add a Playlist</a></p>
     </div>
 
     <div class="body-content">
 
+        <h3>Your Playlists</h3>
         <div class="row">
+            <!-- TODO: Loop your playlists here -->
             <div class="col-lg-4 mb-3">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/doc/">Yii Documentation &raquo;</a></p>
-            </div>
-            <div class="col-lg-4 mb-3">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/forum/">Yii Forum &raquo;</a></p>
-            </div>
-            <div class="col-lg-4">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/extensions/">Yii Extensions &raquo;</a></p>
+                <div class="card p-3 shadow-sm">
+                    <h4>Example Playlist</h4>
+                    <p>Platform: Spotify<br>Songs: 42<br>Last sync: 2 hours ago</p>
+                    <a href="#" class="btn btn-outline-primary">View</a>
+                    <a href="#" class="btn btn-outline-secondary">Sync Now</a>
+                </div>
             </div>
         </div>
+
+        <h3 class="mt-5">Recent Activity</h3>
+        <ul>
+            <li>Playlist <em>Top Hits</em> added 2 new songs.</li>
+            <li>Playlist <em>Chill Vibes</em> synced 3 hours ago.</li>
+        </ul>
 
     </div>
 </div>

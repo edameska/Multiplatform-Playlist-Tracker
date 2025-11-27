@@ -50,11 +50,11 @@ class User extends ActiveRecord implements IdentityInterface
 
     /**
      * {@inheritdoc}
-     * Generate a dynamic authKey (no DB column needed)
+     * Generate a dynamic authKey 
      */
-    public function getAuthKey()
+   public function getAuthKey()
     {
-        return hash('sha256', $this->id . Yii::$app->params['cookieValidationKey']);
+        return hash('sha256', $this->id . Yii::$app->request->cookieValidationKey);
     }
 
     /**
