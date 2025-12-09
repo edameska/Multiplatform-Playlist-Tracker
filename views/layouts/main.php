@@ -42,6 +42,9 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
             ['label' => 'Home', 'url' => ['/site/index']],
             ['label' => 'About', 'url' => ['/site/about']],
             ['label' => 'Contact', 'url' => ['/site/contact']],
+
+            !Yii::$app->user->isGuest ? ['label' => 'Profile', 'url' => ['/profile/index']] : '',
+
             ['label' => 'Signup', 'url' => ['/site/signup']], 
 
             Yii::$app->user->isGuest
@@ -56,6 +59,7 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
                     . '</li>'
         ]
     ]);
+
     NavBar::end();
     ?>
 </header>

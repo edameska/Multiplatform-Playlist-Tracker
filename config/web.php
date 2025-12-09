@@ -43,6 +43,13 @@ $config = [
             ],
         ],
         'db' => $db,
+        'spotifyService' => [
+            'class' => 'app\components\SpotifyService',
+            'clientId' => $params['spotifyClientId'],
+            'clientSecret' => $params['spotifyClientSecret'],
+            'redirectUri' => $params['spotifyRedirectUri'],
+        ],
+
         /*
         'urlManager' => [
             'enablePrettyUrl' => true,
