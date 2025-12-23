@@ -38,14 +38,15 @@ class ProfileController extends Controller
         return $this->redirect(['index']);
     }
 
-    \app\models\ApiAccount::createOrUpdate(Yii::$app->user->id, 'spotify', [
-        'access_token' => $tokens['access_token'],
+    \ApiAccount::createOrUpdate(Yii::$app->user->id, 'spotify', [
+        'access_token'  => $tokens['access_token'],
         'refresh_token' => $tokens['refresh_token'] ?? null,
-        'scope' => $tokens['scope'] ?? null,
-        'token_type' => $tokens['token_type'] ?? null,
-        'expires_at' => date('Y-m-d H:i:s', time() + ($tokens['expires_in'] ?? 3600)),
-        'raw' => $tokens,
+        'scope'         => $tokens['scope'] ?? null,
+        'token_type'    => $tokens['token_type'] ?? null,
+        'expires_at'    => date('Y-m-d H:i:s', time() + ($tokens['expires_in'] ?? 3600)),
+        'raw'           => json_encode($tokens, JSON_THROW_ON_ERROR),
     ]);
+
 
     return $this->redirect(['index']);
 }

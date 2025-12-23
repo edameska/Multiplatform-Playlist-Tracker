@@ -28,18 +28,29 @@ class ApiAccount extends ActiveRecord
     public function rules()
     {
         return [
-            [['platform'], 'required'],
             [['user_id'], 'integer'],
-            [['access_token', 'refresh_token', 'scope', 'raw'], 'string'],
-            [['expires_at', 'created_at', 'updated_at'], 'safe'],
-            [['platform', 'token_type', 'platform_user_id'], 'string', 'max' => 255],
+            [['platform'], 'required'],
+            [['access_token', 'refresh_token', 'scope'], 'string'],
+            [['raw'], 'safe'],
+            [['platform', 'token_type'], 'string', 'max' => 50],
+            [['platform_user_id'], 'string', 'max' => 255],
+            [['expires_at'], 'safe'],
+            [['platform', 'user_id', 'platform_user_id'], 'unique', 'targetAttribute' => ['user_id', 'platform', 'platform_user_id']],
         ];
     }
 
     public function beforeSave($insert)
     {
-        // If you want local timestamps (optional; you already have a DB trigger)
-        // $this->updated_at = date('c');
+        $now = date('Y-m-d H:i:s');
+        $this->updated_at = $now;
+        if ($insert && !$this->created_at) {
+            $this->created_at = $now;
+        }
+
+        // Ensure expires_at is in correct format if it’s a timestamp
+        if (is_int($this->expires_at)) {
+            $this->expires_at = date('Y-m-d H:i:s', $this->expires_at);
+        }
 
         return parent::beforeSave($insert);
     }
@@ -49,23 +60,18 @@ class ApiAccount extends ActiveRecord
      */
     public static function getAccount($userId, $platform)
     {
-        return static::findOne([
-            'user_id' => $userId,
-            'platform' => $platform
+        $account = ApiAccount::findOne([
+            'user_id'  => Yii::$app->user->id,
+            'platform' => 'spotify'
         ]);
+
+        $this->service->setAccessToken($account->access_token);
+        $this->service->setRefreshToken($account->refresh_token);
+
     }
 
     /**
-     * Create or update an API account entry for the user.
-     *
-     * $data example:
-     * [
-     *   'access_token' => '...',
-     *   'refresh_token' => '...',
-     *   'expires_at' => '2025-01-01 12:30:00',
-     *   'platform_user_id' => 'spotify-uid',
-     *   'raw' => json_encode($tokens)
-     * ]
+     * Create or update an ApiAccount record.
      */
     public static function createOrUpdate($userId, $platform, $data)
     {
@@ -77,14 +83,16 @@ class ApiAccount extends ActiveRecord
             $model->platform = $platform;
         }
 
-        // Mass-assign fields
         foreach ($data as $key => $value) {
             if ($model->hasAttribute($key)) {
                 $model->$key = $value;
             }
         }
 
-        $model->save();
+        if (!$model->save()) {
+            throw new \Exception('Could not save ApiAccount: ' . json_encode($model->errors));
+        }
+
         return $model;
     }
 

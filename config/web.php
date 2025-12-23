@@ -38,7 +38,8 @@ $config = [
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
+                    'levels' => ['error', 'warning', 'info'], // <- add 'info'
+                    'logFile' => '@runtime/logs/app.log',   // optional: explicit file
                 ],
             ],
         ],
@@ -50,14 +51,19 @@ $config = [
             'redirectUri' => $params['spotifyRedirectUri'],
         ],
 
-        /*
+        
         'urlManager' => [
             'enablePrettyUrl' => true,
-            'showScriptName' => false,
+            'showScriptName' => false, // hide index.php
+            'enableStrictParsing' => false, // optional, allows unmatched URLs
             'rules' => [
+                'site/spotify-callback' => 'site/spotify-callback',
+                'site/spotify-login'    => 'site/spotify-login',
+                // other custom rules...
             ],
         ],
-        */
+
+        
     ],
     'params' => $params,
 ];
