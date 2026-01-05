@@ -28,14 +28,17 @@ $this->params['breadcrumbs'][] = $this->title;
             <div class="card shadow-sm p-3">
                 <h4>YouTube</h4>
                 <?php if ($youtube): ?>
-                    <p>Connected</p>
+                    <p>Connected as: <strong><?= Html::encode($youtube->platform_user_id ?? 'Unknown') ?></strong></p>
                     <p>Token expires at: <?= Html::encode($youtube->expires_at) ?></p>
-                    <span class="badge bg-success">Connected</span>
+                    <span class="badge <?= strtotime($youtube->expires_at) > time() ? 'bg-success' : 'bg-warning' ?>">
+                        <?= strtotime($youtube->expires_at) > time() ? 'Connected' : 'Expired' ?>
+                    </span>
                 <?php else: ?>
                     <?= Html::a('Connect YouTube', ['profile/youtube-connect'], ['class' => 'btn btn-danger']) ?>
                 <?php endif; ?>
             </div>
         </div>
+
     </div>
 
     <hr>

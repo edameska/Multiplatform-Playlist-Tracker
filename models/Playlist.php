@@ -49,4 +49,10 @@ class Playlist extends ActiveRecord
     {
         return $this->hasOne(ApiAccount::class, ['id' => 'api_account_id']);
     }
+    public function getTracks()
+{
+    return $this->hasMany(Track::class, ['id' => 'track_id'])
+                ->viaTable('playlist_track', ['playlist_id' => 'id']);
+}
+
 }

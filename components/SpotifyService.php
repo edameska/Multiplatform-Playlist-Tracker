@@ -196,25 +196,11 @@ class SpotifyService extends Component
 
 public function getPlaylistTracks(string $playlistId, int $limit = 100, int $offset = 0): string
 {
-    $this->setServiceTokens();
+    $response = $this->apiGet("/playlists/{$playlistId}/tracks?limit={$limit}&offset={$offset}");
 
-    $response = $this->service->getPlaylistTracks($playlistId, $limit, $offset);
-
-    if (!is_array($response) || !isset($response['items'])) {
-        Yii::warning("Invalid Spotify tracks response for playlist $playlistId: " . json_encode($response), __METHOD__);
-        return json_encode([]);
-    }
-
-    // Only keep tracks you want (if needed)
-    $tracks = [];
-    foreach ($response['items'] as $item) {
-        if (isset($item['track']) && $item['track']['type'] === 'track' && empty($item['track']['is_local'])) {
-            $tracks[] = $item['track'];
-        }
-    }
-
-    return json_encode($tracks, JSON_UNESCAPED_UNICODE);
+    return $response;
 }
+
 
 
 

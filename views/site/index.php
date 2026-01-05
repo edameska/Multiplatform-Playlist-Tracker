@@ -49,10 +49,14 @@ use yii\helpers\Url;
                             <div class="tracks-container mt-2" id="tracks-<?= $playlist->id ?>" style="display:none;">
                                 <?php if (!empty($playlist->tracks)): ?>
                                     <?php foreach ($playlist->tracks as $track): ?>
-                                        <div class="track mb-2 p-2 border rounded">
-                                            <strong><?= Html::encode($track->title) ?></strong> - <?= Html::encode($track->artist) ?>
-                                            <div class="mt-1">
-                                                <button class="btn btn-sm btn-outline-success play-track" data-uri="<?= $track->platform_id ?>">
+                                        <div class="track mb-2 p-2 border rounded d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><?= Html::encode($track->title) ?></strong> - <?= Html::encode($track->artist) ?>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-success play-track" 
+                                                    data-platform="<?= $track->platform ?>" 
+                                                    data-uri="<?= $track->platform_id ?>">
                                                     Play
                                                 </button>
                                             </div>
@@ -70,20 +74,21 @@ use yii\helpers\Url;
             <?php endif; ?>
         </div>
 
-        <h3 class="mt-5">Recent Activity</h3>
-        <ul>
-            <li>Playlist <em>Top Hits</em> added 2 new songs.</li>
-            <li>Playlist <em>Chill Vibes</em> synced 3 hours ago.</li>
-        </ul>
-
-        <div class="spotify-player mt-4">
-            <iframe id="spotify-player" src="" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media" style="display:none;"></iframe>
+        <!-- Global Player -->
+        <div class="mt-4">
+            <h5>Now Playing:</h5>
+            <div id="global-player" style="width:100%; min-height:100px;">
+                <iframe id="player-iframe" src="" width="100%" height="180" frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+                    style="display:none;"></iframe>
+            </div>
         </div>
+
     </div>
 </div>
 
 <?php
-$syncUrl = Url::to(['/site/sync-playlist']); // implement actionSiteController->actionSyncPlaylist($id)
+$syncUrl = Url::to(['/site/sync-playlist']);
 $js = <<<JS
 $('.toggle-tracks').click(function(e){
     e.preventDefault();
@@ -92,8 +97,20 @@ $('.toggle-tracks').click(function(e){
 });
 
 $('.play-track').click(function(){
+    const platform = $(this).data('platform');
     const uri = $(this).data('uri');
-    $('#spotify-player').attr('src', 'https://open.spotify.com/embed/track/' + uri).show();
+    const iframe = $('#player-iframe');
+
+    if(platform === 'spotify'){
+        iframe.attr('src', 'https://open.spotify.com/embed/track/' + uri).show();
+        iframe.attr('height', '180');
+    } else if(platform === 'youtube'){
+        iframe.attr('src', 'https://www.youtube.com/embed/' + uri + '?autoplay=1').show();
+        iframe.attr('height', '180');
+    }
+
+    // scroll to player
+    $('html, body').animate({ scrollTop: iframe.offset().top - 100 }, 300);
 });
 
 $('.sync-playlist').click(function(e){

@@ -51,6 +51,12 @@ $config = [
             'redirectUri' => $params['spotifyRedirectUri'],
         ],
 
+        'youtubeService' => [
+            'class' => 'app\components\YoutubeService',
+            'clientId' => $params['youtubeClientId'],
+            'clientSecret' => $params['youtubeClientSecret'],
+            'redirectUri' => $params['youtubeRedirectUri'],
+        ],
         
         'urlManager' => [
             'enablePrettyUrl' => true,
@@ -59,7 +65,7 @@ $config = [
             'rules' => [
                 'site/spotify-callback' => 'site/spotify-callback',
                 'site/spotify-login'    => 'site/spotify-login',
-                // other custom rules...
+                'site/sync-playlist'    => 'site/sync-playlist', // maps to actionSyncPlaylist
             ],
         ],
 

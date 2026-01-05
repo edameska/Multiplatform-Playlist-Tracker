@@ -33,3 +33,6 @@ dist/
 # PHPUnit / tests
 .phpunit.result.cache
 coverage/
+
+#secrets
+config/params.php

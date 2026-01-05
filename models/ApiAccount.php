@@ -17,6 +17,8 @@ use yii\db\ActiveRecord;
  * @property array|null  $raw
  * @property string      $created_at
  * @property string      $updated_at
+ *
+ * @property Playlist[]  $playlists
  */
 class ApiAccount extends ActiveRecord
 {
@@ -47,7 +49,6 @@ class ApiAccount extends ActiveRecord
             $this->created_at = $now;
         }
 
-        // Ensure expires_at is in correct format if it’s a timestamp
         if (is_int($this->expires_at)) {
             $this->expires_at = date('Y-m-d H:i:s', $this->expires_at);
         }
@@ -60,14 +61,10 @@ class ApiAccount extends ActiveRecord
      */
     public static function getAccount($userId, $platform)
     {
-        $account = ApiAccount::findOne([
-            'user_id'  => Yii::$app->user->id,
-            'platform' => 'spotify'
+        return static::findOne([
+            'user_id' => $userId,
+            'platform' => $platform
         ]);
-
-        $this->service->setAccessToken($account->access_token);
-        $this->service->setRefreshToken($account->refresh_token);
-
     }
 
     /**
@@ -75,13 +72,9 @@ class ApiAccount extends ActiveRecord
      */
     public static function createOrUpdate($userId, $platform, $data)
     {
-        $model = static::getAccount($userId, $platform);
-        
-        if (!$model) {
-            $model = new static();
-            $model->user_id = $userId;
-            $model->platform = $platform;
-        }
+        $model = static::getAccount($userId, $platform) ?? new static();
+        $model->user_id = $userId;
+        $model->platform = $platform;
 
         foreach ($data as $key => $value) {
             if ($model->hasAttribute($key)) {
@@ -101,10 +94,7 @@ class ApiAccount extends ActiveRecord
      */
     public function isExpired(): bool
     {
-        if (!$this->expires_at) {
-            return false;
-        }
-        return strtotime($this->expires_at) <= time();
+        return $this->expires_at && strtotime($this->expires_at) <= time();
     }
 
     /**
@@ -113,5 +103,13 @@ class ApiAccount extends ActiveRecord
     public function getRawDecoded()
     {
         return is_string($this->raw) ? json_decode($this->raw, true) : $this->raw;
+    }
+
+    /**
+     * Get all playlists for this API account.
+     */
+    public function getPlaylists()
+    {
+        return $this->hasMany(Playlist::class, ['api_account_id' => 'id']);
     }
 }
