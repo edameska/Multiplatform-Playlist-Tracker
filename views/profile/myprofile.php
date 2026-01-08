@@ -7,6 +7,12 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <div class="profile-page">
     <h1><?= Html::encode($this->title) ?></h1>
+        <?php if ($spotify || $youtube): ?>
+        <?= Html::beginForm(['profile/refresh-playlists'], 'post', ['id' => 'refresh-form']) ?>
+        <?= Html::submitButton('Refresh Playlists', ['class' => 'btn btn-primary']) ?>
+        <?= Html::endForm() ?>
+    <?php endif; ?>
+
 
     <div class="row mt-4">
         <!-- Spotify Card -->

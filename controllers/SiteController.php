@@ -252,7 +252,6 @@ class SiteController extends Controller
                 if ($pt->isNewRecord) {
                     $pt->playlist_id = $playlist->id;
                     $pt->track_id = $track->id;
-                    $pt->added_by_api = true;
                     if (!$pt->save()) {
                         Yii::error("Failed to save PlaylistTrack for track {$track->title}: " . json_encode($pt->getErrors()), __METHOD__);
                         continue;
@@ -454,7 +453,6 @@ private function syncYoutubePlaylistTracks(Playlist $playlist, YoutubeAdapter $a
         if ($pt->isNewRecord) {
             $pt->playlist_id = $playlist->id;
             $pt->track_id = $track->id;
-            $pt->added_by_api = true;
             if (!$pt->save()) {
                 Yii::error("Failed to save PlaylistTrack for '{$track->title}': " . json_encode($pt->getErrors()), __METHOD__);
                 continue;

@@ -28,7 +28,6 @@ class PlaylistTrack extends ActiveRecord
         return [
             [['playlist_id', 'track_id'], 'required'],
             [['playlist_id', 'track_id', 'position'], 'integer'],
-            [['added_by_api'], 'boolean'],
             [['detected_at'], 'safe'],
         ];
     }
