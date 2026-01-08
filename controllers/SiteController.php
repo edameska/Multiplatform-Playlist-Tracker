@@ -19,16 +19,27 @@ use app\components\adapters\YoutubeAdapter;
 
 class SiteController extends Controller
 {
-    public $enableCsrfValidation = false;
+    #public $enableCsrfValidation = false;
 
     public function behaviors()
     {
         return [
             'access' => [
-                'class' => AccessControl::class,
-                'only' => ['logout'],
-                'rules' => [['actions' => ['logout'], 'allow' => true, 'roles' => ['@']]],
+            'class' => AccessControl::class,
+            'only' => ['login', 'logout', 'signup'],
+            'rules' => [
+                [
+                    'actions' => ['login', 'signup'],
+                    'allow' => true,
+                    'roles' => ['?'], // guests
+                ],
+                [
+                    'actions' => ['logout'],
+                    'allow' => true,
+                    'roles' => ['@'], // logged in
+                ],
             ],
+        ],
             'verbs' => [
                 'class' => VerbFilter::class,
                 'actions' => ['logout' => ['post']],
@@ -46,12 +57,37 @@ class SiteController extends Controller
         ];
     }
 
-    public function actions()
+   public function actions()
     {
         return [
-            'error' => ['class' => 'yii\web\ErrorAction'],
+            'error' => [
+                'class' => 'yii\web\ErrorAction',
+            ],
+            'captcha' => [
+                'class' => 'yii\captcha\CaptchaAction',
+                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
+            ],
         ];
     }
+
+
+    public function actionLogin()
+    {
+        if (!Yii::$app->user->isGuest) {
+            return $this->goHome();
+        }
+
+        $model = new LoginForm();
+
+        if ($model->load(Yii::$app->request->post()) && $model->login()) {
+            return $this->goBack();
+        }
+
+        return $this->render('login', [
+            'model' => $model,
+        ]);
+    }
+
 
     public function actionIndex()
     {
@@ -65,6 +101,44 @@ class SiteController extends Controller
         }
         return $this->render('index', ['playlists' => $playlists]);
     }
+
+    public function actionLogout()
+    {
+        Yii::$app->user->logout();
+        return $this->goHome();
+    }
+
+    public function actionSignup()
+    {
+        $model = new \app\models\SignupForm();
+
+        if ($model->load(Yii::$app->request->post()) && $user = $model->signup()) {
+            Yii::$app->session->setFlash('success', 'Registration successful. You can now login.');
+            return $this->redirect(['site/login']);
+        }
+        return $this->render('signup', ['model' => $model]);
+    }
+
+
+    public function actionContact()
+    {
+        $model = new ContactForm();
+
+        if ($model->load(Yii::$app->request->post()) && $model->contact('edameska@gmail.com')) {
+            Yii::$app->session->setFlash('contactFormSubmitted');
+            return $this->refresh();
+        }
+
+        return $this->render('contact', ['model' => $model]);
+    }
+    public function actionAbout()
+    {
+        return $this->render('about');
+    }
+
+
+
+
 
     // ================= Spotify ================= //
 

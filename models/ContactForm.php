@@ -23,14 +23,18 @@ class ContactForm extends Model
     public function rules()
     {
         return [
-            // name, email, subject and body are required
             [['name', 'email', 'subject', 'body'], 'required'],
-            // email has to be a valid email address
+            [['name', 'email', 'subject', 'body'], 'trim'],
+
             ['email', 'email'],
-            // verifyCode needs to be entered correctly
-            ['verifyCode', 'captcha'],
+
+            [['name', 'subject'], 'string', 'max' => 255],
+            ['body', 'string', 'max' => 2000],
+
+            ['verifyCode', 'captcha', 'skipOnEmpty' => YII_ENV_TEST],
         ];
     }
+
 
     /**
      * @return array customized attribute labels
