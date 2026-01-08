@@ -1,6 +1,7 @@
 <?php
 namespace app\components\adapters;
 
+use Yii;
 use app\components\YoutubeService;
 
 class YoutubeAdapter
@@ -34,29 +35,33 @@ class YoutubeAdapter
 
     // Get all tracks for a playlist, handling pagination
     public function getPlaylistTracks(string $playlistId): array
-    {
-        $allTracks = [];
-        $pageToken = null;
+{
+    $allTracks = [];
+    $pageToken = null;
 
-        do {
-            $items = $this->service->getPlaylistItems($playlistId, 50, $pageToken ?? '');
+    do {
+        $result = $this->service->getPlaylistItems($playlistId, 50, $pageToken ?? '');
+        $items = $result['items'] ?? [];
+        $pageToken = $result['nextPageToken'] ?? null;
 
-            foreach ($items as $item) {
-                $allTracks[] = [
-                    'id' => $item['id'] ?? null,
-                    'title' => $item['title'] ?? 'Untitled',
-                    'artist' => $item['channel'] ?? 'Unknown',
-                    'album' => '',
-                    'duration_ms' => 0,
-                    'preview_url' => $item['url'] ?? null,
-                ];
-            }
+        Yii::info("Fetched " . count($items) . " tracks from playlist $playlistId, pageToken: " . ($pageToken ?? 'none'), __METHOD__);
 
-            $pageToken = $items['nextPageToken'] ?? null; // optional if getPlaylistItems() handles pagination internally
-        } while ($pageToken);
+        foreach ($items as $item) {
+            $allTracks[] = [
+                'id' => $item['id'] ?? null,
+                'title' => $item['title'] ?? 'Untitled',
+                'artist' => $item['channel'] ?? 'Unknown',
+                'album' => '',
+                'duration_ms' => 0,
+                'preview_url' => $item['url'] ?? null,
+            ];
+        }
+    } while ($pageToken);
 
-        return $allTracks;
-    }
+    Yii::info("Total tracks fetched for playlist $playlistId: " . count($allTracks), __METHOD__);
+    return $allTracks;
+}
+
 
 
     // Helper to get channel ID for the authenticated user

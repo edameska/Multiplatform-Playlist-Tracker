@@ -281,36 +281,48 @@ class SiteController extends Controller
 
 
     public function actionSyncPlaylist()
-    {
-        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+{
+    Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
-        $playlistId = Yii::$app->request->post('id');
-        $playlist = Playlist::findOne($playlistId);
-        if (!$playlist || $playlist->platform !== 'spotify') {
-            return ['success' => false, 'message' => 'Playlist not found or not Spotify.'];
-        }
-
-        $apiAccount = $playlist->apiAccount;
-        if (!$apiAccount) return ['success' => false, 'message' => 'API account missing.'];
-
-        $service = new SpotifyService([
-            'clientId' => Yii::$app->params['spotifyClientId'],
-            'clientSecret' => Yii::$app->params['spotifyClientSecret'],
-            'redirectUri' => Yii::$app->params['spotifyRedirectUri'],
-        ]);
-
-        $adapter = new \app\components\adapters\SpotifyAdapter($service);
-        $adapter->setTokens($apiAccount->access_token, $apiAccount->refresh_token ?? null);
-
-
-        try {
-            $addedCount = $this->syncPlaylistTracks($playlist, $adapter);
-            return ['success' => true, 'message' => "Synced $addedCount tracks."];
-        } catch (\Throwable $e) {
-            Yii::error($e->getMessage(), __METHOD__);
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
+    $playlistId = Yii::$app->request->post('id');
+    $playlist = Playlist::findOne($playlistId);
+    if (!$playlist) {
+        return ['success' => false, 'message' => 'Playlist not found.'];
     }
+
+    $apiAccount = $playlist->apiAccount;
+    if (!$apiAccount) return ['success' => false, 'message' => 'API account missing.'];
+
+    try {
+        $addedCount = 0;
+
+        if ($playlist->platform === 'spotify') {
+            $service = new SpotifyService([
+                'clientId' => Yii::$app->params['spotifyClientId'],
+                'clientSecret' => Yii::$app->params['spotifyClientSecret'],
+                'redirectUri' => Yii::$app->params['spotifyRedirectUri'],
+            ]);
+            $adapter = new \app\components\adapters\SpotifyAdapter($service);
+            $adapter->setTokens($apiAccount->access_token, $apiAccount->refresh_token ?? null);
+            $addedCount = $this->syncPlaylistTracks($playlist, $adapter);
+
+        } elseif ($playlist->platform === 'youtube') {
+            $service = Yii::$app->youtubeService;
+            $service->setAccessToken($apiAccount->access_token, $apiAccount->refresh_token ?? null);
+            $adapter = new \app\components\adapters\YoutubeAdapter($service);
+            Yii::info("Starting sync for playlist {$playlist->name} ({$playlist->platform_id})", __METHOD__);
+            $addedCount = $this->syncYoutubePlaylistTracks($playlist, $adapter);
+        } else {
+            return ['success' => false, 'message' => 'Unknown platform.'];
+        }
+
+        return ['success' => true, 'message' => "Synced $addedCount tracks."];
+    } catch (\Throwable $e) {
+        Yii::error($e->getMessage(), __METHOD__);
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
     // ================= Youtube ================= //
 
     public function actionYoutubeLogin()
@@ -407,52 +419,60 @@ class SiteController extends Controller
 
 
 
-    private function syncYoutubePlaylistTracks(Playlist $playlist, YoutubeAdapter $adapter)
-    {
-        $addedCount = 0;
+private function syncYoutubePlaylistTracks(Playlist $playlist, YoutubeAdapter $adapter)
+{
+    $addedCount = 0;
+    Yii::info("Starting sync for playlist '{$playlist->name}' ({$playlist->platform_id})", __METHOD__);
 
-        Yii::info("Starting sync for YouTube playlist {$playlist->name} ({$playlist->platform_id})", __METHOD__);
+    $tracks = $adapter->getPlaylistTracks($playlist->platform_id);
+    Yii::info("Adapter returned " . count($tracks) . " tracks", __METHOD__);
 
-        $tracks = $adapter->getPlaylistTracks($playlist->platform_id); // only playlistId
+    foreach ($tracks as $i => $trackData) {
+        Yii::info("Track $i raw data: " . json_encode($trackData), __METHOD__);
 
-        foreach ($tracks as $trackData) {
-            if (!isset($trackData['id'])) continue;
-
-            $track = Track::findOne([
-                'platform' => 'youtube',
-                'platform_id' => $trackData['id'],
-            ]) ?? new Track();
-
-            $track->platform = 'youtube';
-            $track->platform_id = $trackData['id'];
-            $track->title = $trackData['title'] ?? 'Untitled';
-            $track->artist = $trackData['artist'] ?? 'Unknown';
-            $track->duration_ms = $trackData['duration_ms'] ?? null;
-            $track->preview_url = $trackData['preview_url'] ?? null;
-            $track->raw = json_encode($trackData, JSON_UNESCAPED_UNICODE);
-
-            if (!$track->save()) continue;
-
-            $pt = PlaylistTrack::findOne([
-                'playlist_id' => $playlist->id,
-                'track_id' => $track->id,
-            ]) ?? new PlaylistTrack();
-
-            if ($pt->isNewRecord) {
-                $pt->playlist_id = $playlist->id;
-                $pt->track_id = $track->id;
-                $pt->added_by_api = true;
-                $pt->save();
-                $addedCount++;
-            }
+        $trackId = $trackData['id'] ?? null;
+        if (!$trackId) {
+            Yii::warning("Skipping track with missing ID", __METHOD__);
+            continue;
         }
 
-        $playlist->track_count = PlaylistTrack::find()->where(['playlist_id' => $playlist->id])->count();
-        $playlist->last_synced_at = date('Y-m-d H:i:s');
-        $playlist->save();
+        $track = Track::findOne(['platform' => 'youtube', 'platform_id' => $trackId]) ?? new Track();
+        $track->platform = 'youtube';
+        $track->platform_id = $trackId;
+        $track->title = $trackData['title'] ?? 'Untitled';
+        $track->artist = $trackData['artist'] ?? 'Unknown';
+        $track->duration_ms = $trackData['duration_ms'] ?? null;
+        $track->preview_url = $trackData['preview_url'] ?? null;
+        $track->raw = json_encode($trackData, JSON_UNESCAPED_UNICODE);
 
-        Yii::info("YouTube playlist {$playlist->name} synced with $addedCount new tracks", __METHOD__);
-        return $addedCount;
+        if (!$track->save()) {
+            Yii::error("Failed to save track '{$track->title}': " . json_encode($track->getErrors()), __METHOD__);
+            continue;
+        }
+
+        $pt = PlaylistTrack::findOne(['playlist_id' => $playlist->id, 'track_id' => $track->id]) ?? new PlaylistTrack();
+        if ($pt->isNewRecord) {
+            $pt->playlist_id = $playlist->id;
+            $pt->track_id = $track->id;
+            $pt->added_by_api = true;
+            if (!$pt->save()) {
+                Yii::error("Failed to save PlaylistTrack for '{$track->title}': " . json_encode($pt->getErrors()), __METHOD__);
+                continue;
+            }
+            $addedCount++;
+        }
     }
+
+    $playlist->track_count = PlaylistTrack::find()->where(['playlist_id' => $playlist->id])->count();
+    $playlist->last_synced_at = date('Y-m-d H:i:s');
+
+    if (!$playlist->save()) {
+        Yii::error("Failed to update playlist '{$playlist->name}': " . json_encode($playlist->getErrors()), __METHOD__);
+    } else {
+        Yii::info("Finished syncing playlist '{$playlist->name}' with $addedCount new tracks", __METHOD__);
+    }
+
+    return $addedCount;
+}
 
 }

@@ -8,7 +8,6 @@ use yii\helpers\Url;
     <div class="jumbotron text-center bg-transparent mt-5 mb-5">
         <h1 class="display-4">Playlist Tracker</h1>
         <p class="lead">Track playlists across platforms and monitor changes over time.</p>
-        <p><a class="btn btn-lg btn-success" href="/playlist/add">+ Add a Playlist</a></p>
     </div>
 
     <div class="body-content">

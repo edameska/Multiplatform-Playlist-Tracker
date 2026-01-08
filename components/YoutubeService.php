@@ -40,14 +40,12 @@ class YoutubeService extends Component
             'redirect_uri'  => $this->redirectUri,
         ]);
 
-        $opts = [
-            'http' => [
-                'method' => 'POST',
-                'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-                'content' => $post,
-                'ignore_errors' => true,
-            ],
-        ];
+        $opts = ['http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $post,
+            'ignore_errors' => true,
+        ]];
 
         $response = file_get_contents(self::TOKEN_URL, false, stream_context_create($opts));
         $data = json_decode($response, true) ?? [];
@@ -93,58 +91,90 @@ class YoutubeService extends Component
     }
 
     // ================= API Calls ================= //
-    private function apiGet(string $endpoint, array $params = []): array
-    {
-        if (!$this->accessToken) return [];
-
-        $url = self::API_BASE . $endpoint . '?' . http_build_query(array_merge($params, ['access_token' => $this->accessToken]));
-        $response = @file_get_contents($url);
-        return json_decode($response, true) ?? [];
+    private function apiGet(string $endpoint, array $params = [], bool $retry = true): array
+{
+    if (!$this->accessToken) {
+        Yii::error("No access token set for YouTube API call", __METHOD__);
+        return [];
     }
 
-    /**
-     * Return normalized playlists for a channel
-     */
-    public function getPlaylists(int $maxResults = 50): array
-{
-    $data = $this->apiGet('/playlists', [
-        'part' => 'snippet,contentDetails',
-        'mine' => 'true',      
-        'maxResults' => $maxResults,
+    $url = self::API_BASE . $endpoint . '?' . http_build_query($params);
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer {$this->accessToken}",
+            "Accept: application/json",
+        ],
+        CURLOPT_TIMEOUT => 10,
     ]);
 
-    $items = $data['items'] ?? [];
-    $playlists = [];
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
 
-    foreach ($items as $p) {
-        if (empty($p['id'])) {
-            Yii::warning("Skipped playlist with missing ID: " . json_encode($p), __METHOD__);
-            continue;
-        }
-
-        $title = $p['snippet']['title'] ?? 'Untitled';
-        $itemCount = $p['contentDetails']['itemCount'] ?? 0;
-
-        // Skip playlists that are completely inaccessible (no title & 0 items)
-        if ($title === 'Untitled' && $itemCount === 0) {
-            Yii::warning("Skipped inaccessible playlist: " . json_encode($p), __METHOD__);
-            continue;
-        }
-
-        $playlists[] = [
-            'id' => $p['id'],
-            'title' => $title,
-            'description' => $p['snippet']['description'] ?? '',
-            'itemCount' => $itemCount,
-        ];
+    if ($curlError) {
+        Yii::error("cURL error while calling YouTube API: $curlError", __METHOD__);
+        return [];
     }
 
-    return $playlists;
+    $data = json_decode($response, true) ?? [];
+
+    Yii::info("YouTube API GET $url returned HTTP $httpCode: " . ($response ?: 'empty'), __METHOD__);
+
+    // Retry once if unauthorized
+    if ($retry && $httpCode === 401 && $this->refreshToken) {
+        Yii::info("Access token expired, refreshing...", __METHOD__);
+        $tokens = $this->refreshAccessToken();
+        if (!empty($tokens['access_token'])) {
+            return $this->apiGet($endpoint, $params, false); // retry once
+        } else {
+            Yii::error("Failed to refresh YouTube token", __METHOD__);
+        }
+    }
+
+    return $data;
 }
 
 
+    // ================= Playlists ================= //
+    public function getPlaylists(int $maxResults = 50): array
+    {
+        $data = $this->apiGet('/playlists', [
+            'part' => 'snippet,contentDetails',
+            'mine' => 'true',
+            'maxResults' => $maxResults,
+        ]);
 
+        $items = $data['items'] ?? [];
+        $playlists = [];
 
+        foreach ($items as $p) {
+            if (empty($p['id'])) {
+                Yii::warning("Skipped playlist with missing ID: " . json_encode($p), __METHOD__);
+                continue;
+            }
+            $title = $p['snippet']['title'] ?? 'Untitled';
+            $itemCount = $p['contentDetails']['itemCount'] ?? 0;
+
+            if ($title === 'Untitled' && $itemCount === 0) {
+                Yii::warning("Skipped inaccessible playlist: " . json_encode($p), __METHOD__);
+                continue;
+            }
+
+            $playlists[] = [
+                'id' => $p['id'],
+                'title' => $title,
+                'description' => $p['snippet']['description'] ?? '',
+                'itemCount' => $itemCount,
+            ];
+        }
+
+        return $playlists;
+    }
 
     public function getPlaylistItems(string $playlistId, int $maxResults = 50, string $pageToken = ''): array
     {
@@ -156,6 +186,7 @@ class YoutubeService extends Component
         if ($pageToken) $params['pageToken'] = $pageToken;
 
         $data = $this->apiGet('/playlistItems', $params);
+
         $items = [];
         foreach ($data['items'] ?? [] as $item) {
             $items[] = [
@@ -166,12 +197,15 @@ class YoutubeService extends Component
                 'position' => $item['snippet']['position'] ?? 0,
             ];
         }
-        return $items;
+
+        Yii::info("Fetched " . count($items) . " items from playlist $playlistId, nextPageToken: " . ($data['nextPageToken'] ?? 'none'), __METHOD__);
+        return [
+            'items' => $items,
+            'nextPageToken' => $data['nextPageToken'] ?? null,
+        ];
     }
 
-    /**
-     * Fetch authenticated user's channel info
-     */
+    // ================= User Channel ================= //
     public function getMyChannel(): array
     {
         $data = $this->apiGet('/channels', [
